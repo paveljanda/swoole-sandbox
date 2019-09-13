@@ -1,0 +1,29 @@
+<?php
+
+declare(strict_types=1);
+
+use Swoole\Http\Request;
+use Swoole\Http\Response;
+use Swoole\Http\Server;
+
+$server = new Server('127.0.0.1', 8000, SWOOLE_BASE);
+
+$server->set([
+	'worker_num' => 4,
+]);
+
+$server->on('WorkerStart', function() {
+	/*$bootstrap = new Bootstrap;*/
+
+	/*$this->container = $bootstrap->createContainer();*/
+});
+
+$server->on('Request', function (Request $request, Response $response) {
+	$response->header = [
+		'content-type' => 'application/json',
+	];
+
+	$response->end('{"foo": "bar"}');
+});
+
+$server->start();

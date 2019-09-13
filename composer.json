@@ -1,0 +1,22 @@
+{
+	"type": "project",
+	"autoload": {
+		"psr-4": {
+			"App\\": "src/"
+		}
+	},
+	"require": {
+		"nette/di": "^3.0",
+		"nette/utils": "^3.0",
+		"nette/bootstrap": "^3.0"
+	},
+    "require-dev": {
+        "eaglewu/swoole-ide-helper": "dev-master",
+		"gamee/php-code-checker-rules": "^1.2"
+    },
+    "scripts": {
+		"app:phpstan": "vendor/bin/phpstan analyse src bin -c vendor/gamee/php-code-checker-rules/phpstan.neon --level 7",
+		"app:phpcs": "vendor/bin/phpcs --standard=vendor/gamee/php-code-checker-rules/ruleset.xml --extensions=php,phpt --tab-width=4 --ignore=temp -sp src bin",
+		"app:phpcsfix": "vendor/bin/phpcbf --standard=vendor/gamee/php-code-checker-rules/ruleset.xml --extensions=php,phpt --tab-width=4 --ignore=temp -sp src bin"
+	}
+}
