@@ -2,28 +2,94 @@
 
 declare(strict_types=1);
 
+use App\Bootstrap;
+use Nette\Application\Application;
+use Nette\Application\IPresenterFactory;
+use Nette\DI\Container;
+use Nette\Http\Request as NetteRequest;
+use Nette\Http\Response as NetteResponse;
+use Nette\Http\UrlScript;
+use Nette\Routing\Router;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoole\Http\Server;
+use Swoole\Runtime;
 
-$server = new Server('127.0.0.1', 8000, SWOOLE_BASE);
+require __DIR__ . '/../src/Bootstrap.php';
 
-$server->set([
-	'worker_num' => 4,
-]);
+final class AppServer
+{
 
-$server->on('WorkerStart', function() {
-	/*$bootstrap = new Bootstrap;*/
+	/**
+	 * @var Server
+	 */
+	private $server;
 
-	/*$this->container = $bootstrap->createContainer();*/
-});
+	/**
+	 * @var Container|null
+	 */
+	private $container;
 
-$server->on('Request', function (Request $request, Response $response) {
-	$response->header = [
-		'content-type' => 'application/json',
-	];
 
-	$response->end('{"foo": "bar"}');
-});
+	public function __construct()
+	{
+		$this->server = new Server('127.0.0.1', 3000, SWOOLE_BASE);
 
-$server->start();
+		$this->server->set([
+			'log_level' => 2,
+			'worker_num' => 4,
+		]);
+
+		$this->bindWorkerEvents();
+		$this->bindHttpEvents();
+	}
+
+
+	public function start(): void
+	{
+		$this->server->start();
+	}
+
+
+	private function bindWorkerEvents(): void
+	{
+		$this->server->on('workerStart', function(Server $server): void {
+			$bootstrap = new Bootstrap;
+			$this->container = $bootstrap->createContainer();
+		});
+	}
+
+
+	private function bindHttpEvents(): void
+	{
+		$this->server->on('Request', function (Request $request, Response $response) {
+			$application = new Application(
+				$this->getContainer()->getByType(IPresenterFactory::class),
+				$this->getContainer()->getByType(Router::class),
+				new NetteRequest(
+					new UrlScript()
+				),
+				new NetteResponse
+			);
+
+			$response->header = [
+				'content-type' => 'application/json',
+			];
+
+			$response->end('{"foo": "bar"}');
+		});
+	}
+
+
+	private function getContainer(): Container
+	{
+		if ($this->container === null) {
+			throw new \RuntimeException('DI Container not created yet');
+		}
+
+		return $this->container;
+	}
+}
+
+Runtime::enableCoroutine(true);
+(new AppServer)->start();

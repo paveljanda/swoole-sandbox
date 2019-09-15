@@ -6,17 +6,25 @@
 		}
 	},
 	"require": {
+		"php": ">= 7.1",
+		"nette/application": "^3.0",
+		"nette/bootstrap": "^3.0",
+		"nette/caching": "^3.0",
+		"nette/database": "^3.0",
 		"nette/di": "^3.0",
+		"nette/http": "^3.0",
+		"nette/security": "^3.0",
 		"nette/utils": "^3.0",
-		"nette/bootstrap": "^3.0"
+		"latte/latte": "^2.5",
+		"tracy/tracy": "^2.6"
 	},
     "require-dev": {
         "eaglewu/swoole-ide-helper": "dev-master",
 		"gamee/php-code-checker-rules": "^1.2"
     },
     "scripts": {
-		"app:phpstan": "vendor/bin/phpstan analyse src bin -c vendor/gamee/php-code-checker-rules/phpstan.neon --level 7",
-		"app:phpcs": "vendor/bin/phpcs --standard=vendor/gamee/php-code-checker-rules/ruleset.xml --extensions=php,phpt --tab-width=4 --ignore=temp -sp src bin",
-		"app:phpcsfix": "vendor/bin/phpcbf --standard=vendor/gamee/php-code-checker-rules/ruleset.xml --extensions=php,phpt --tab-width=4 --ignore=temp -sp src bin"
+		"phpstan": "vendor/bin/phpstan analyse src bin -c vendor/gamee/php-code-checker-rules/phpstan.neon --level 7",
+		"phpcs": "vendor/bin/phpcs --standard=vendor/gamee/php-code-checker-rules/ruleset.xml --extensions=php,phpt --tab-width=4 --ignore=temp -sp src bin",
+		"phpcsfix": "vendor/bin/phpcbf --standard=vendor/gamee/php-code-checker-rules/ruleset.xml --extensions=php,phpt --tab-width=4 --ignore=temp -sp src bin"
 	}
 }
