@@ -27,6 +27,7 @@ final class Bootstrap
 		$this->configurator->addConfig(__DIR__ . '/../config/config.neon');
 
 		if (file_exists(__DIR__ . '/../config/config.local.neon')) {
+			$this->configurator->enableDebugger(true);
 			$this->configurator->addConfig(__DIR__ . '/../config/config.local.neon');
 		}
 	}

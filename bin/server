@@ -63,20 +63,38 @@ final class AppServer
 	private function bindHttpEvents(): void
 	{
 		$this->server->on('Request', function (Request $request, Response $response) {
+			ob_start();
+
 			$application = new Application(
 				$this->getContainer()->getByType(IPresenterFactory::class),
 				$this->getContainer()->getByType(Router::class),
 				new NetteRequest(
-					new UrlScript()
+					new UrlScript($this->server->host . '/'),
+					$request->post,
+					$request->files,
+					$request->cookie,
+					$request->header,
+					$request->server['request_method'],
+					$request->server['remote_addr'],
+					null,
+					function() use ($request): string {
+						return $request->rawContent();
+					}
 				),
 				new NetteResponse
 			);
+
+			$application->run();
+
+			$output = ob_get_contents();
+
+			ob_end_clean();
 
 			$response->header = [
 				'content-type' => 'application/json',
 			];
 
-			$response->end('{"foo": "bar"}');
+			$response->end($output);
 		});
 	}
 
