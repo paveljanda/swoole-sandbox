@@ -90,9 +90,9 @@ final class AppServer
 
 			ob_end_clean();
 
-			$response->header = [
+			/*$response->header = [
 				'content-type' => 'application/json',
-			];
+			];*/
 
 			$response->end($output);
 		});
