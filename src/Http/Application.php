@@ -37,7 +37,7 @@ final class Application
 
 
 	public function __construct(
-		IPresenterFactory $presenterFactory,
+		IPresenterFactory $presenterFactory
 	) {
 		$this->presenterFactory = $presenterFactory;
 	}
@@ -74,6 +74,6 @@ final class Application
 		// $this->onResponse($this, $response);
 		//$response->send($this->httpRequest, $this->httpResponse);
 
-		$response;
+		return $response;
 	}
 }

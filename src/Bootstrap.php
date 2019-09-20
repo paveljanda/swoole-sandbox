@@ -25,7 +25,7 @@ final class Bootstrap
 		$this->configurator->setTimeZone('Europe/Prague');
 		$this->configurator->setTempDirectory(__DIR__ . '/../temp');
 		$this->configurator->addConfig(__DIR__ . '/../config/config.neon');
-		$this->configurator->enableTracy();
+		$this->configurator->setDebugMode(true);
 
 		if (file_exists(__DIR__ . '/../config/config.local.neon')) {
 			$this->configurator->addConfig(__DIR__ . '/../config/config.local.neon');

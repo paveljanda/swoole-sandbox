@@ -3,17 +3,21 @@
 declare(strict_types=1);
 
 use App\Bootstrap;
-use Nette\Application\Application;
+use App\Http\Application;
+use Nette\Application\BadRequestException;
 use Nette\Application\IPresenterFactory;
+use Nette\Application\UI\Presenter;
 use Nette\DI\Container;
-use Nette\Http\Request as NetteRequest;
-use Nette\Http\Response as NetteResponse;
+use Nette\Http\Request as HttpRequest;
+use Nette\Application\Request as ApplicationRequest;
 use Nette\Http\UrlScript;
+use Nette\InvalidStateException;
 use Nette\Routing\Router;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoole\Http\Server;
 use Swoole\Runtime;
+use Tracy\Bar;
 
 require __DIR__ . '/../src/Bootstrap.php';
 
@@ -63,38 +67,55 @@ final class AppServer
 	private function bindHttpEvents(): void
 	{
 		$this->server->on('Request', function (Request $request, Response $response) {
-			ob_start();
+			$router = $this->getContainer()->getByType(Router::class);
 
-			$application = new Application(
-				$this->getContainer()->getByType(IPresenterFactory::class),
-				$this->getContainer()->getByType(Router::class),
-				new NetteRequest(
-					new UrlScript($this->server->host . '/'),
-					$request->post,
-					$request->files,
-					$request->cookie,
-					$request->header,
-					$request->server['request_method'],
-					$request->server['remote_addr'],
-					null,
-					function() use ($request): string {
-						return $request->rawContent();
-					}
+			var_dump($request->server);
+
+			$httpRequest = new HttpRequest(
+				new UrlScript(
+					$this->server->host . $request->server['path_info'], $request->server['path_info']
 				),
-				new NetteResponse
+				$request->post,
+				$request->files,
+				$request->cookie,
+				$request->header,
+				$request->server['request_method'],
+				$request->server['remote_addr'],
+				null,
+				function() use ($request): string {
+					return $request->rawContent();
+				}
 			);
 
-			$application->run();
+			$params = $router->match($httpRequest);
+			$presenter = $params[Presenter::PRESENTER_KEY] ?? null;
 
-			$output = ob_get_contents();
+			if ($params === null) {
+				throw new BadRequestException('No route for HTTP request.');
+			} elseif (!is_string($presenter)) {
+				throw new InvalidStateException('Missing presenter in route definition.');
+			}
 
-			ob_end_clean();
+			unset($params[Presenter::PRESENTER_KEY]);
+
+			$appRequest = new ApplicationRequest(
+				$presenter,
+				$httpRequest->getMethod(),
+				$params,
+				$httpRequest->getPost(),
+				$httpRequest->getFiles(),
+				[ApplicationRequest::SECURED => $httpRequest->isSecured()]
+			);
+
+			$presenterFactory = $this->getContainer()->getByType(IPresenterFactory::class);
+
+			$appResponse = (new Application($presenterFactory))->processRequest($appRequest);
 
 			/*$response->header = [
 				'content-type' => 'application/json',
 			];*/
 
-			$response->end($output);
+			$response->end((string) $appResponse->getSource());
 		});
 	}
 

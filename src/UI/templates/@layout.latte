@@ -10,6 +10,13 @@
 <body>
 	<div n:foreach="$flashes as $flash" n:class="flash, $flash->type">{$flash->message}</div>
 
+	<ul>
+		<li><a n:href="default">default</a></li>
+		<li><a n:href="a">a</a></li>
+	</ul>
+
+	<hr>
+
 	{include content}
 
 	{block scripts}

@@ -1,0 +1,115 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Bootstrap;
+use Nette\Application\Application;
+use Nette\Application\IPresenterFactory;
+use Nette\DI\Container;
+use Nette\Http\Request as NetteRequest;
+use Nette\Http\Response as NetteResponse;
+use Nette\Http\UrlScript;
+use Nette\Routing\Router;
+use Swoole\Http\Request;
+use Swoole\Http\Response;
+use Swoole\Http\Server;
+use Swoole\Runtime;
+use Tracy\Bar;
+
+require __DIR__ . '/../src/Bootstrap.php';
+
+final class AppServer
+{
+
+	/**
+	 * @var Server
+	 */
+	private $server;
+
+	/**
+	 * @var Container|null
+	 */
+	private $container;
+
+
+	public function __construct()
+	{
+		$this->server = new Server('127.0.0.1', 3000, SWOOLE_BASE);
+
+		$this->server->set([
+			'log_level' => 2,
+			'worker_num' => 4,
+		]);
+
+		$this->bindWorkerEvents();
+		$this->bindHttpEvents();
+	}
+
+
+	public function start(): void
+	{
+		$this->server->start();
+	}
+
+
+	private function bindWorkerEvents(): void
+	{
+		$this->server->on('workerStart', function(Server $server): void {
+			$bootstrap = new Bootstrap;
+			$this->container = $bootstrap->createContainer();
+		});
+	}
+
+
+	private function bindHttpEvents(): void
+	{
+		$this->server->on('Request', function (Request $request, Response $response) {
+			ob_start();
+
+			$application = new Application(
+				$this->getContainer()->getByType(IPresenterFactory::class),
+				$this->getContainer()->getByType(Router::class),
+				new NetteRequest(
+					new UrlScript($this->server->host . '/'),
+					$request->post,
+					$request->files,
+					$request->cookie,
+					$request->header,
+					$request->server['request_method'],
+					$request->server['remote_addr'],
+					null,
+					function() use ($request): string {
+						return $request->rawContent();
+					}
+				),
+				new NetteResponse
+			);
+
+			$application->run();
+			$this->getContainer()->getByType(Bar::class)->render();
+
+			$output = ob_get_contents();
+
+			ob_end_clean();
+
+			/*$response->header = [
+				'content-type' => 'application/json',
+			];*/
+
+			$response->end($output);
+		});
+	}
+
+
+	private function getContainer(): Container
+	{
+		if ($this->container === null) {
+			throw new \RuntimeException('DI Container not created yet');
+		}
+
+		return $this->container;
+	}
+}
+
+Runtime::enableCoroutine(true);
+(new AppServer)->start();
